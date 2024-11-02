@@ -30,15 +30,43 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 		return nil, errors.New("Failed to create user")
 	}
 
-	return &model.User{ID: int(user.ID), Name: user.Name, Email: user.Email}, nil
+	return &model.User{ID: int(user.ID), Name: user.Name, Email: user.Email, Password: user.Password}, nil
 }
 
 // UpdateUser is the resolver for the updateUser field.
 func (r *mutationResolver) UpdateUser(ctx context.Context, id int, input model.UpdateUserInput) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: UpdateUser - updateUser"))
+
+	if id == 0 {
+		log.Error("Invalid user id")
+		return nil, errors.New("Invalid user id")
+	}
+
+	update := r.Client.User.UpdateOneID(id)
+
+	switch {
+	case input.Name != nil:
+		update.SetName(*input.Name)
+	case input.Email != nil:
+		update.SetEmail(*input.Email)
+	case input.Password != nil:
+		update.SetPassword(*input.Password)
+	}
+
+	updatedUser, err := update.Save(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to update user")
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return &model.User{
+		ID:       updatedUser.ID,
+		Name:     updatedUser.Name,
+		Email:    updatedUser.Email,
+		Password: updatedUser.Password,
+	}, nil
+
 }
 
-// DeleteUser is the resolver for the deleteUser field.
 // DeleteUser is the resolver for the deleteUser field.
 func (r *mutationResolver) DeleteUser(ctx context.Context, id int) (bool, error) {
 
@@ -71,7 +99,7 @@ func (r *queryResolver) GetUser(ctx context.Context, id int) (*model.User, error
 		return nil, errors.New("Failed to fetch user")
 	}
 
-	return &model.User{ID: int(user.ID), Name: user.Name, Email: user.Email}, nil
+	return &model.User{ID: int(user.ID), Name: user.Name, Email: user.Email, Password: user.Password}, nil
 }
 
 // GetAllUsers is the resolver for the getAllUsers field.
