@@ -6,7 +6,7 @@ import (
 	"root/shared/middleware"
 	"root/shared/utils"
 
-	gql "root/modules/User"
+	gql "root/modules"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
