@@ -43,7 +43,7 @@ func (r *queryResolver) GetAllUsers(ctx context.Context) ([]*model.User, error) 
 		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
 
-	modelUsers := []*model.User{}
+	modelUsers := new([]*model.User)
 
 	for _, u := range users {
 		modelUser := &model.User{
@@ -52,10 +52,11 @@ func (r *queryResolver) GetAllUsers(ctx context.Context) ([]*model.User, error) 
 			Email:    u.Email,
 			Password: u.Password,
 		}
-		modelUsers = append(modelUsers, modelUser)
+		*modelUsers = append(*modelUsers, modelUser)
 	}
 
-	return modelUsers, nil
+	return *modelUsers, nil
+
 }
 
 // Mutation returns MutationResolver implementation.
