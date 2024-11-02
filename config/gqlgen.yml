@@ -4,16 +4,16 @@ schema:
 
 # Where should the generated server code go?
 exec:
-  filename: ../graphql/out/generated.go
+  filename: ../graphql/generated/resolvers/generated.go
   package: graph
 
 model:
-  filename: ../graphql/model/models_gen.go
+  filename: ../graphql/generated/model/models_gen.go
   package: model
 
 resolver:
   layout: follow-schema
-  dir: ../graphql/out
+  dir: ../graphql/generated/resolvers
   package: graph
   filename_template: '{name}.resolvers.go'
 

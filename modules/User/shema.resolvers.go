@@ -6,9 +6,10 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"root/database/user"
 	"root/graphql/model"
-	graph_types "root/graphql/out"
 
 	"github.com/sirupsen/logrus"
 )
@@ -17,22 +18,60 @@ var log = logrus.New()
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: CreateUser - createUser"))
+
+	user, err := r.Client.User.Create().
+		SetName(input.Name).
+		SetEmail(input.Email).
+		SetPassword(input.Password).
+		Save(ctx)
+
+	if err != nil {
+		log.WithError(err).Error("Failed to create user")
+		return nil, errors.New("Failed to create user")
+	}
+
+	return &model.User{ID: int(user.ID), Name: user.Name, Email: user.Email}, nil
 }
 
 // UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(ctx context.Context, id int, input model.CreateUserInput) (*model.User, error) {
+func (r *mutationResolver) UpdateUser(ctx context.Context, id int, input model.UpdateUserInput) (*model.User, error) {
 	panic(fmt.Errorf("not implemented: UpdateUser - updateUser"))
 }
 
 // DeleteUser is the resolver for the deleteUser field.
-func (r *mutationResolver) DeleteUser(ctx context.Context, id int) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: DeleteUser - deleteUser"))
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context, id int) (bool, error) {
+
+	if id == 0 {
+		log.Error("Invalid user id")
+		return false, errors.New("Invalid user id")
+	}
+
+	err := r.Client.User.DeleteOneID(id).Exec(ctx)
+
+	if err != nil {
+		log.WithError(err).Error("Failed to delete user")
+		return false, errors.New("Failed to delete user")
+	}
+
+	return true, nil
 }
 
 // GetUser is the resolver for the getUser field.
 func (r *queryResolver) GetUser(ctx context.Context, id int) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: GetUser - getUser"))
+
+	if id == 0 {
+		log.Error("Invalid user id")
+		return nil, errors.New("Invalid user id")
+	}
+
+	user, err := r.Client.User.Query().Where(user.IDEQ(id)).Only(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to fetch user")
+		return nil, errors.New("Failed to fetch user")
+	}
+
+	return &model.User{ID: int(user.ID), Name: user.Name, Email: user.Email}, nil
 }
 
 // GetAllUsers is the resolver for the getAllUsers field.
@@ -40,30 +79,20 @@ func (r *queryResolver) GetAllUsers(ctx context.Context) ([]*model.User, error) 
 	users, err := r.Client.User.Query().All(ctx)
 	if err != nil {
 		log.WithError(err).Error("Failed to fetch users")
-		return nil, fmt.Errorf("failed to get users: %w", err)
+		return nil, errors.New("Failed to fetch users")
 	}
 
-	modelUsers := new([]*model.User)
+	modelUsers := make([]*model.User, len(users))
 
-	for _, u := range users {
-		modelUser := &model.User{
+	for i, u := range users {
+		modelUsers[i] = &model.User{
 			ID:       u.ID,
 			Name:     u.Name,
 			Email:    u.Email,
 			Password: u.Password,
 		}
-		*modelUsers = append(*modelUsers, modelUser)
 	}
 
-	return *modelUsers, nil
+	return modelUsers, nil
 
 }
-
-// Mutation returns MutationResolver implementation.
-func (r *Resolver) Mutation() graph_types.MutationResolver { return &mutationResolver{r} }
-
-// Query returns QueryResolver implementation.
-func (r *Resolver) Query() graph_types.QueryResolver { return &queryResolver{r} }
-
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
